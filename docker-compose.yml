@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    platform: linux/arm64/v8 # Raspberry Pi (will auto-adapt on Mac)
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    platform: linux/arm64/v8
+    ports:
+      - "3000:80"
+    restart: always
