@@ -1,49 +1,76 @@
-import "./style.css";
+let socket;
+const mode = import.meta.env.VITE_MODE;
+const websocketURL = mode === 'dev'
+  ? import.meta.env.VITE_DEV_WEBSOCKET_URL
+  : import.meta.env.VITE_PI_WEBSOCKET_URL;
 
-let word = "";
-let currentIndex = 0;
+console.log("WebSocket URL is:", websocketURL);
 
-async function showBraille(letter) {
-  const res = await fetch("http://localhost:5000/api/braille", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(letter),
-  });
+let currentWord = "";
+let currentLetterIndex = 0;
 
-  const data = await res.json();
-  const pins = data.result; // [1, 0, 0, 1, 0, 0] etc.
+connectWebSocket();
 
+function connectWebSocket() {
+  socket = new WebSocket(`${websocketURL}/ws/frontend`);
+
+  socket.onopen = () => console.log("Connected to WebSocket!");
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.event === "show_letter") {
+      displayBraille(data.pins);
+    }
+  };
+  socket.onerror = (e) => console.error("WebSocket error:", e);
+}
+
+function displayBraille(pins) {
   const container = document.getElementById("braille-display");
   container.innerHTML = "";
-
-  pins.forEach((pin) => {
+  pins.forEach(pin => {
     const dot = document.createElement("div");
-    dot.textContent = pin === 1 ? "●" : "○";
-    dot.className = "w-10 h-10 flex items-center justify-center border rounded-full";
+
+    dot.className = `
+      w-16 h-16
+      rounded-full
+      m-2
+      ${pin === 1 ? 'bg-black' : 'bg-white border'}
+    `;
+
     container.appendChild(dot);
   });
 }
 
-document.getElementById("start").addEventListener("click", async () => {
-  const res = await fetch("http://localhost:5000/api/word");
-  const data = await res.json();
-  word = data.word.toLowerCase();
-  currentIndex = 0;
+document.getElementById("startBtn").addEventListener("click", async () => {
+  currentWord = document.getElementById("wordInput").value.trim();
+  if (!currentWord) return alert("Please enter a word.");
 
-  document.getElementById("output").textContent = `Feel the word: ${word}`;
-  await showBraille(word[currentIndex]);
-  document.getElementById("next").classList.remove("hidden");
+  currentLetterIndex = 0;
+  await fetch(`${websocketURL.replace('ws', 'http')}/api/setword`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ word: currentWord })
+  });
+
+  document.getElementById("output").textContent = `Word: ${currentWord}`;
+  document.getElementById("nextBtn").classList.remove("hidden");
 });
 
-document.getElementById("next").addEventListener("click", async () => {
-  currentIndex++;
-  if (currentIndex < word.length) {
-    await showBraille(word[currentIndex]);
-  } else {
-    document.getElementById("braille-display").innerHTML = "";
-    document.getElementById("next").classList.add("hidden");
-    document.getElementById("output").textContent = "You've finished the word!";
+document.addEventListener("keydown", (e) => {
+  const perkinsKeys = ['s', 'd', 'f', 'j', 'k', 'l'];
+  if (perkinsKeys.includes(e.key.toLowerCase())) {
+    // Capture perkins key input (for simplicity, storing as binary [s,d,f,j,k,l])
+    const values = perkinsKeys.map(k => (k === e.key.toLowerCase() ? 1 : 0));
+    socket.send(JSON.stringify({ event: "perkins_input", values }));
+    console.log("Sent Perkins input:", values);
   }
+
+  if (e.key === "Enter") {
+    socket.send(JSON.stringify({ event: "next_letter" }));
+    console.log("Requested next letter");
+  }
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  socket.send(JSON.stringify({ event: "next_letter" }));
 });
