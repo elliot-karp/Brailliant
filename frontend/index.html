@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Braille Teaching Demo</title>
 
-    <!-- Fonts (JetBrains Mono) -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
     <!-- Tailwind -->
@@ -15,22 +15,39 @@
       body {
         font-family: 'JetBrains Mono', monospace;
       }
+
+      @keyframes blink {
+        50% { opacity: 0; }
+      }
+
+      .animate-blink {
+        animation: blink 1s step-start infinite;
+      }
     </style>
   </head>
+
   <body class="bg-neutral-100 text-gray-900 min-h-screen flex flex-col px-4 pt-6 items-center">
     <header class="w-full text-center mb-8">
       <h1 class="text-4xl font-extrabold">Braille Teaching Demo</h1>
-      <h2 class="text-lg font-medium">Press "Enter" on Perkins Keyboard (or your computer) to begin</h2>
     </header>
 
-    <main class="flex flex-col items-center gap-4">
-      <input id="wordInput" class="border rounded p-2 w-64 text-center" placeholder="Enter word" />
-      <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Start</button>
+    <!-- Monkeytype-style Input Area -->
+    <div class="text-4xl tracking-wide relative select-none text-center h-16 w-full max-w-xl mb-2">
+      <span id="promptText" class="text-gray-500">Enter a word, or press "Enter" to begin</span>
+      <span id="typedWord" class="text-black hidden"></span>
+      <span id="cursor" class="text-gray-500 animate-blink hidden">▮</span>
+      <input id="wordInput"
+             class="absolute inset-0 opacity-0 w-full h-full"
+             type="text"
+             autocomplete="off"
+             spellcheck="false"
+             autofocus />
+    </div>
 
+    <!-- Braille Display + Next -->
+    <main class="flex flex-col items-center gap-4">
       <div id="output" class="text-lg font-semibold"></div>
       <div id="braille-display" class="grid grid-cols-2 gap-4 mt-4"></div>
-
-
       <button id="nextBtn" class="bg-green-600 text-white px-4 py-2 rounded hidden">Next Letter</button>
     </main>
 

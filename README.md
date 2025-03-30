@@ -5,7 +5,7 @@
 - docker-compose up frontend
 
 ### To build frontend outside of container 
-npm run build 
+npm run dev
 
 ### To access api docs 
 http://localhost:5000/docs

@@ -9,10 +9,16 @@ async def simulate_input_letter():
 
         while True:
             input("Press Enter to simulate GPIO button press...")
-            custom_pins = [0,0,1,0,1,0]
+            custom_pins = [1,0,
+                           0,0,
+                           1,1]
             await websocket.send(json.dumps({
                 "pins": custom_pins
             }))
             print("Sent pins:", custom_pins)
 
 asyncio.run(simulate_input_letter())
+
+#{0}{1}
+#{2}{3}
+#{4}{5}

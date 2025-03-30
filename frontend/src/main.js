@@ -9,7 +9,70 @@ console.log("WebSocket URL is:", websocketURL);
 let currentWord = "";
 let currentLetterIndex = 0;
 
-connectWebSocket();
+const inputField = document.getElementById("wordInput");
+const typedWordEl = document.getElementById("typedWord");
+const promptTextEl = document.getElementById("promptText");
+const cursorEl = document.getElementById("cursor");
+
+inputField.focus();
+
+// Handle input like Monkeytype
+inputField.addEventListener("input", () => {
+  const value = inputField.value;
+  typedWordEl.textContent = value;
+
+  if (value.length > 0) {
+    promptTextEl.classList.add("hidden");
+    typedWordEl.classList.remove("hidden");
+    cursorEl.classList.remove("hidden");
+  } else {
+    promptTextEl.classList.remove("hidden");
+    typedWordEl.classList.add("hidden");
+    cursorEl.classList.add("hidden");
+  }
+});
+
+// On Enter, simulate start
+inputField.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("startBtn").click();
+  }
+});
+
+document.getElementById("startBtn").addEventListener("click", async () => {
+  currentWord = inputField.value.trim();
+  if (!currentWord) return alert("Please enter a word.");
+
+  currentLetterIndex = 0;
+
+  await fetch(`${websocketURL.replace('ws', 'http')}/api/setword`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ word: currentWord })
+  });
+
+  document.getElementById("output").textContent = `Word: ${currentWord}`;
+  document.getElementById("nextBtn").classList.remove("hidden");
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  socket.send(JSON.stringify({ event: "next_letter" }));
+});
+
+document.addEventListener("keydown", (e) => {
+  const perkinsKeys = ['s', 'd', 'f', 'j', 'k', 'l'];
+  if (perkinsKeys.includes(e.key.toLowerCase())) {
+    const values = perkinsKeys.map(k => (k === e.key.toLowerCase() ? 1 : 0));
+    socket.send(JSON.stringify({ event: "perkins_input", values }));
+    console.log("Sent Perkins input:", values);
+  }
+
+  if (e.key === "Enter") {
+    socket.send(JSON.stringify({ event: "next_letter" }));
+    console.log("Requested next letter");
+  }
+});
 
 function connectWebSocket() {
   socket = new WebSocket(`${websocketURL}/ws/frontend`);
@@ -41,36 +104,4 @@ function displayBraille(pins) {
   });
 }
 
-document.getElementById("startBtn").addEventListener("click", async () => {
-  currentWord = document.getElementById("wordInput").value.trim();
-  if (!currentWord) return alert("Please enter a word.");
-
-  currentLetterIndex = 0;
-  await fetch(`${websocketURL.replace('ws', 'http')}/api/setword`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ word: currentWord })
-  });
-
-  document.getElementById("output").textContent = `Word: ${currentWord}`;
-  document.getElementById("nextBtn").classList.remove("hidden");
-});
-
-document.addEventListener("keydown", (e) => {
-  const perkinsKeys = ['s', 'd', 'f', 'j', 'k', 'l'];
-  if (perkinsKeys.includes(e.key.toLowerCase())) {
-    // Capture perkins key input (for simplicity, storing as binary [s,d,f,j,k,l])
-    const values = perkinsKeys.map(k => (k === e.key.toLowerCase() ? 1 : 0));
-    socket.send(JSON.stringify({ event: "perkins_input", values }));
-    console.log("Sent Perkins input:", values);
-  }
-
-  if (e.key === "Enter") {
-    socket.send(JSON.stringify({ event: "next_letter" }));
-    console.log("Requested next letter");
-  }
-});
-
-document.getElementById("nextBtn").addEventListener("click", () => {
-  socket.send(JSON.stringify({ event: "next_letter" }));
-});
+connectWebSocket();
