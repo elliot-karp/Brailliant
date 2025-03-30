@@ -3,7 +3,7 @@ import websockets
 import json
 
 async def simulate_input_letter():
-    uri = "ws://localhost:5000/ws/button"
+    uri = "ws://localhost:5000/ws/perkins"
     async with websockets.connect(uri) as websocket:
         print("Connected as Button!")
 

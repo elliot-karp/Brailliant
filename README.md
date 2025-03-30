@@ -5,6 +5,7 @@
 - docker-compose up frontend
 
 ### To build frontend outside of container 
+- **ensure that you 
 npm run dev
 
 ### To access api docs 

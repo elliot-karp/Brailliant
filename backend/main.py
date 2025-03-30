@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from braille_box import braille_pins
+from braille_box import braille_pins, get_random_word
 
 app = FastAPI()
 
@@ -33,10 +33,8 @@ class SetWord(BaseModel):
 async def set_word(data: SetWord):
     global current_word, current_letter_index, user_attempts
     current_word = data.word.lower()
-    current_letter_index = 0
-    user_attempts = []
-    return {"status": "word set"}
-
+    print(current_word)
+    return {"status: backend set word:": data.word.lower() }
 
 
 @app.websocket("/ws/frontend")
@@ -65,7 +63,7 @@ async def gpio_button_pressed(values):
     for frontend in frontend_clients:
         await frontend.send_json({"event": "show_letter", "pins": values})
         
-@app.websocket("/ws/button")
+@app.websocket("/ws/perkins")
 async def button_ws(websocket: WebSocket):
     await websocket.accept()
     button_clients.add(websocket)
@@ -97,15 +95,19 @@ async def button_ws(websocket: WebSocket):
 class SetWord(BaseModel):
     word: str
 
-current_word = ""
-current_index = 0
-connected_clients = []
-
 @app.post("/api/setword")
 async def set_word(data: SetWord):
     global current_word, current_index
     current_word = data.word.lower()
     current_index = 0
     print("Word set to:", current_word)
+
+    # this needs to trigger the start of the braille shits now.
     return {"status": "word set"}
 
+
+@app.get("/api/getword")
+async def get_word():
+    current_word = get_random_word() 
+    print("Word returned:", current_word)
+    return {"word": current_word}

@@ -5,6 +5,7 @@
 #{2}{3}
 #{4}{5}
 # --> {0,1,2,3,4,5} these are the array representation 
+import random
 
 def braille_pins(letter):
     braille_dict = {
@@ -39,3 +40,15 @@ def braille_pins(letter):
     letter = letter.lower()
     return braille_dict.get(letter, [0, 0, 0, 0, 0, 0]) 
 braille_pins("l")
+
+
+
+def get_random_word():
+    words = [
+        "apple", "bread", "chair", "dance", "earth", "flame", "grape", "horse", "input", "juice",
+        "knife", "lemon", "magic", "night", "ocean", "plant", "quiet", "river", "stone", "table",
+        "under", "voice", "water", "youth", "zebra", "brick", "cloud", "drink", "eagle", "fresh",
+        "grass", "happy", "ivory", "jelly", "knock", "light", "money", "north", "opine", "paint",
+        "quick", "round", "shelf", "train", "union", "valid", "watch", "xenon", "yield", "zebra"
+    ]
+    return random.choice(words)
