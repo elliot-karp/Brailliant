@@ -1,9 +1,9 @@
 let socket;
-const mode = import.meta.env.VITE_MODE;
-const websocketURL = mode === "dev"
-  ? import.meta.env.VITE_DEV_WEBSOCKET_URL
-  : import.meta.env.VITE_PI_WEBSOCKET_URL;
-
+let websocketURL;
+const mode = "local";
+if(mode === "local"){
+    websocketURL = 'ws://10.0.0.63:5000'
+}
 console.log("WebSocket URL is:", websocketURL);
 
 // This will hold the state received from the backend.
