@@ -1,159 +1,221 @@
 let socket;
 const mode = import.meta.env.VITE_MODE;
-const websocketURL =
-  mode === "dev"
-    ? import.meta.env.VITE_DEV_WEBSOCKET_URL
-    : import.meta.env.VITE_PI_WEBSOCKET_URL;
+const websocketURL = mode === "dev"
+  ? import.meta.env.VITE_DEV_WEBSOCKET_URL
+  : import.meta.env.VITE_PI_WEBSOCKET_URL;
 
 console.log("WebSocket URL is:", websocketURL);
 
-// Define modes for handling the Enter key
-const SET_WORD_MODE = "set_word";
-const BRAILLE_MODE = "braille_mode"
-// Set the initial mode (you can change this later if needed)
-let currentMode = SET_WORD_MODE;
+// This will hold the state received from the backend.
+let currentState = {};
 
-let currentWord = "";
-let currentLetterIndex = 0;
-
+// Cache DOM elements
 const inputField = document.getElementById("wordInput");
 const typedWordDisplay = document.getElementById("typedWordDisplay");
 const promptTextEl = document.getElementById("promptText");
+const outputDiv = document.getElementById("output");
+const brailleDisplay = document.getElementById("braille-display");
 
+// Focus the input field on load
 inputField.focus();
 
+/**
+ * Returns a random word from a predefined list.
+ */
+function getRandomWord() {
+  const words = [
+    "apple", "bread", "chair", "dance", "earth", "flame", "grape", "horse", "input", "juice",
+    "knife", "lemon", "magic", "night", "ocean", "plant", "quiet", "river", "stone", "table",
+    "under", "voice", "water", "youth", "zebra", "brick", "cloud", "drink", "eagle", "fresh",
+    "grass", "happy", "ivory", "jelly", "knock", "light", "money", "north", "opine", "paint",
+    "quick", "round", "shelf", "train", "union", "valid", "watch", "xenon", "yield", "zebra"
+  ];
+  return words[Math.floor(Math.random() * words.length)];
+}
 
-
-
-
-// Update display: as the user types, hide the flashing prompt and show their input at the top.
-inputField.addEventListener("input", () => {
-  const value = inputField.value;
-  if (value.length > 0) {
-    //promptTextEl.classList.add("hidden");
-    
-    promptTextEl.textContent = 'Press Enter to submit your word'
-
-    typedWordDisplay.textContent = value;
-    typedWordDisplay.classList.remove("hidden");
-  } else {
+/**
+ * Renders the UI based solely on the state from the server.
+ * In braille mode, only the current letter is shown along with a nicely formatted Braille cell.
+ */
+function renderState(state) {
+  if (state.mode === "set_word") {
     promptTextEl.classList.remove("hidden");
-    typedWordDisplay.classList.add("hidden");
-  }
-});
-
-// Function that handles starting logic based on mode and input content.
-async function handleStart() {
-  let trimmed = inputField.value.trim();
-  if (currentMode === SET_WORD_MODE) {
-    if (trimmed.length > 0) {
-      // User typed a word: send it to the setword API.
-      currentWord = trimmed;
-      currentLetterIndex = 0;
-      await fetch(`${websocketURL.replace("ws", "http")}/api/setword`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: currentWord })
-      });
-      promptTextEl.classList.add("hidden");
-
-      document.getElementById("output").textContent = `Word: ${currentWord}`;
-      document.getElementById("nextBtn").classList.remove("hidden");
-      currentMode = BRAILLE_MODE;
+    promptTextEl.textContent = "Type a word and press Enter to set it";
+    promptTextEl.classList.add("animate-pulse");
+    promptTextEl.classList.remove("font-bold");
+  
+    inputField.style.display = "block";
+    typedWordDisplay.classList.remove("hidden");
+    brailleDisplay.innerHTML = "";
+  } else if (state.mode === "braille_mode") {
+    console.log("we now in braille");
+    const currentLetter = (state.current_letter_index > 0 && state.current_word)
+      ? state.current_word[state.current_letter_index - 1]
+      : "";
+    if (currentLetter === "") {
+      promptTextEl.classList.add("animate-pulse");
+      promptTextEl.classList.remove("font-bold");
+      promptTextEl.textContent = "Press Enter to start";
     } else {
-      // No input provided: call the getword API to fetch a word.
-      const response = await fetch(
-        `${websocketURL.replace("ws", "http")}/api/getword`
-      );
-
-
-      const data = await response.json();
-
-      promptTextEl.classList.add("hidden");
-
-      typedWordDisplay.textContent  = data.word;
-
-      console.log(data)
-      typedWordDisplay.classList.remove("hidden");
-
-      currentWord = data.word;
-      currentLetterIndex = 0;
-
-      await fetch(`${websocketURL.replace("ws", "http")}/api/setword`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: currentWord })
-      });
-
-      document.getElementById("output").textContent = `Word: ${currentWord}`;
-      document.getElementById("nextBtn").classList.remove("hidden");
-      currentMode = BRAILLE_MODE;
+      promptTextEl.textContent = currentLetter;
+      promptTextEl.classList.remove("animate-pulse");
+      promptTextEl.classList.add("font-bold");
     }
+    inputField.style.display = "none";
+    typedWordDisplay.textContent = state.current_word;
+    typedWordDisplay.classList.remove("hidden");
+  
+    renderBrailleDisplay(state.pins);
   }
 }
 
-// When the user presses Enter in the input field, handle start based on the mode.
-inputField.addEventListener("keydown", async (e) => {
-  inputField.focus();
-  if (e.key === "Enter") {
-    e.preventDefault();
-    await handleStart();
-  }
-});
-
-
-// Bind the start button to the same functionality.
-// document.getElementById("startBtn").addEventListener("click", handleStart);
-
-// Global keydown listener to capture Perkins-style input and request next letter.
-
-function perkins_input(e) {
-  if(currentMode === BRAILLE_MODE){
-    const perkinsKeys = ["s", "d", "f", "j", "k", "l"];
-    if (perkinsKeys.includes(e.key.toLowerCase())) {
-      const values = perkinsKeys.map((k) =>
-        k === e.key.toLowerCase() ? 1 : 0
-      );
-      socket.send(JSON.stringify({ event: "perkins_input", values }));
-      console.log("Sent Perkins input:", values);
-    }
-
-    // if (e.key === "Enter") {
-    //   socket.send(JSON.stringify({ event: "next_letter" }));
-    //   console.log("Requested next letter");
-    // }
-  }
+function renderBrailleDisplay(pins) {
+  brailleDisplay.innerHTML = "";
+  if (!pins || pins.length !== 6) return;
+  const brailleCell = document.createElement("div");
+  brailleCell.className = `
+    grid grid-cols-2 gap-6
+    place-items-center
+  `;
+  pins.forEach(pin => {
+    const dot = document.createElement("div");
+    dot.className = `
+      w-20 h-20 rounded-full
+      ${pin === 1 ? "bg-black" : "bg-gray-300"}
+    `;
+    brailleCell.appendChild(dot);
+  });
+  brailleDisplay.appendChild(brailleCell);
 }
 
-// Attach it to global keydown listener
-document.addEventListener("keydown", perkins_input);
+/**
+ * Applies a new state received from the server and updates the UI.
+ */
+function applyState(newState) {
+  currentState = newState;
+  renderState(currentState);
+}
 
-
-// Connect to the WebSocket server and handle incoming events.
+// Establish the main WebSocket connection for frontend events.
 function connectWebSocket() {
   socket = new WebSocket(`${websocketURL}/ws/frontend`);
-
-  socket.onopen = () => console.log("Connected to WebSocket!");
+  socket.onopen = () => console.log("Connected to Frontend WebSocket!");
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    if (data.event === "show_letter") {
-      displayBraille(data.pins);
+    if (data.event === "state_update") {
+      console.log("Received state update:", data.state);
+      applyState(data.state);
     }
   };
   socket.onerror = (e) => console.error("WebSocket error:", e);
 }
-
-// // Render Braille dots based on the provided pin configuration.
-// function displayBraille(pins) {
-//   const container = document.getElementById("braille-display");
-//   container.innerHTML = "";
-//   pins.forEach((pin) => {
-//     const dot = document.createElement("div");
-//     dot.className = `w-16 h-16 rounded-full m-2 ${
-//       pin === 1 ? "bg-black" : "bg-white border"
-//     }`;
-//     container.appendChild(dot);
-//   });
-// }
-
 connectWebSocket();
+
+/**
+ * Submits a word to the backend when in set_word mode.
+ * If no word is typed, a random word is chosen.
+ */
+async function submitWord() {
+  let trimmed = inputField.value.trim();
+  if (trimmed === "") {
+    trimmed = getRandomWord();
+    console.log("No word typed – using random word:", trimmed);
+  }
+  await fetch(`${websocketURL.replace("ws", "http")}/api/setword`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ word: trimmed })
+  });
+ 
+  socket.send(JSON.stringify({ action: "next_letter" }));
+}
+
+// Listen for input events to update the typed word display.
+inputField.addEventListener("input", () => {
+  const value = inputField.value;
+  typedWordDisplay.textContent = value;
+  if (value.length > 0) {
+    promptTextEl.textContent = "Press Enter to start";
+  } else {
+    promptTextEl.textContent = "Type a word and press Enter to set it";
+  }
+});
+
+// Listen for Enter in the input field when in "set_word" mode.
+inputField.addEventListener("keydown", async (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (currentState.mode === "set_word") {
+      await submitWord();
+    }
+  }
+});
+
+// Global variable to accumulate Perkins input.
+let perkinsInput = [0, 0, 0, 0, 0, 0];
+
+document.addEventListener("keydown", (e) => {
+  if (currentState.mode === "braille_mode") {
+    const perkinsKeys = ["s", "d", "f", "j", "k", "l"];
+    const keyLower = e.key.toLowerCase();
+
+    if (perkinsKeys.includes(keyLower)) {
+      const index = perkinsKeys.indexOf(keyLower);
+      perkinsInput[index] = 1;
+      console.log("Accumulated Perkins input:", perkinsInput);
+      e.preventDefault();
+    }
+    // When Enter is pressed in braille_mode, send the accumulated Perkins input via the API.
+    else if (e.key === "Enter") {
+      const hasInput = perkinsInput.some(val => val === 1);
+      if (hasInput) {
+        fetch(`${websocketURL.replace("ws", "http")}/api/perkins`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ values: perkinsInput })
+        })
+        .then(response => response.json())
+        .then(data => console.log("Sent Perkins input via API:", perkinsInput, data))
+        .catch(err => console.error("Error sending Perkins input:", err));
+        perkinsInput = [0, 0, 0, 0, 0, 0];
+      }
+      e.preventDefault();
+    }
+    // Use the right arrow key to trigger the next letter on the main socket.
+    else if (e.key === "ArrowRight") {
+      socket.send(JSON.stringify({ action: "next_letter" }));
+      console.log("Sent next_letter action via ArrowRight");
+      e.preventDefault();
+    }
+  }
+});
+
+// Global keydown listener for set_word mode to auto-focus and simulate keystrokes.
+document.addEventListener("keydown", (e) => {
+  if (currentState.mode === "set_word" && document.activeElement !== inputField) {
+    inputField.focus();
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      inputField.value += e.key;
+      const inputEvent = new Event("input", { bubbles: true });
+      inputField.dispatchEvent(inputEvent);
+      e.preventDefault();
+    } else if (e.key === "Backspace") {
+      inputField.value = inputField.value.slice(0, -1);
+      const inputEvent = new Event("input", { bubbles: true });
+      inputField.dispatchEvent(inputEvent);
+      e.preventDefault();
+    }
+  }
+});
+
+// Listen for the backslash key to trigger a state reset.
+document.addEventListener("keydown", async (e) => {
+  if (e.key === "\\") {
+    e.preventDefault();
+    console.log("Reset key pressed, triggering state reset");
+    inputField.value = "";
+    typedWordDisplay.textContent = "";
+    await fetch(`${websocketURL.replace("ws", "http")}/api/reset`, { method: "GET" });
+    inputField.focus();
+  }
+});

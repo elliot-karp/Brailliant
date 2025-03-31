@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Braille Teaching Demo - Start</title>
+    <title>Braille Teaching Demo</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -17,47 +17,54 @@
       }
     </style>
   </head>
-  <body class="bg-neutral-100 relative">
-    <!-- Top display for the typed word -->
-    <div
-      id="typedWordDisplay"
-      class="absolute top-0 left-0 right-0 p-4 text-center text-5xl text-gray-600 hidden"
-    ></div>
 
-    <!-- Full-screen centered prompt area -->
-    <div class="flex flex-col items-center justify-center h-screen">
-      <div class="relative">
-        <!-- Flashing prompt text -->
-        <span id="promptText" class="text-5xl text-gray-600 animate-pulse">
-          Press Enter or type a word to start
-        </span>
-        <!-- Invisible input for capturing keystrokes -->
-        <input
-          id="wordInput"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          class="absolute inset-0 opacity-0"
-          autofocus
-        />
+  <body class="bg-neutral-100 text-gray-800">
+    <!-- Fullscreen layout -->
+    <main class="flex flex-col items-center justify-center min-h-screen px-4 relative">
+
+      <!-- 1. Typed word at the top -->
+      <div
+        id="typedWordDisplay"
+        class="absolute top-4 left-0 right-0 text-center text-4xl text-gray-700 hidden"
+      ></div>
+
+      <!-- 2. Current letter being shown -->
+      <div
+        id="promptText"
+        class="text-6xl font-bold text-gray-800 mb-8 animate-pulse"
+      >
+        Press Enter or type a word to start
       </div>
-    </div>
 
-    <!-- Additional elements for further functionality -->
-    <div class="hidden" id="startBtnContainer">
-      <button id="startBtn" class="bg-blue-600 text-white px-4 py-2 rounded">
-        Start
-      </button>
-    </div>
-    <div class="mt-4 text-lg" id="output"></div>
-    <div class="mt-4 grid grid-cols-2 gap-4" id="braille-display"></div>
-    <div class="hidden mt-4" id="nextBtnContainer">
-      <button id="nextBtn" class="bg-green-600 text-white px-4 py-2 rounded">
-        Next Letter
-      </button>
-    </div>
+      <!-- 3. Braille visual output -->
+      <div id="braille-display" class="flex justify-center items-center mb-8"></div>
 
-    <!-- Link to the external JavaScript file -->
+      <!-- Hidden input capturing key presses -->
+      <input
+        id="wordInput"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        class="absolute inset-0 opacity-0"
+        autofocus
+      />
+
+      <!-- Misc -->
+      <div id="output" class="text-lg mt-2"></div>
+
+      <div class="hidden" id="startBtnContainer">
+        <button id="startBtn" class="bg-blue-600 text-white px-4 py-2 rounded">
+          Start
+        </button>
+      </div>
+
+      <div class="hidden" id="nextBtnContainer">
+        <button id="nextBtn" class="bg-green-600 text-white px-4 py-2 rounded">
+          Next Letter
+        </button>
+      </div>
+    </main>
+
     <script type="module" src="src/main.js"></script>
   </body>
 </html>
