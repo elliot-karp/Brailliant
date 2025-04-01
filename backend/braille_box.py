@@ -1,9 +1,9 @@
 # functions here read the state of the box as well as define methods to send commands to the box to display certain shapes
 
 # function which takes a letter and returns the braille representation in 6 pin format 
-#{0}{1}
 #{2}{3}
-#{4}{5}
+#{1}{4}
+#{0}{5}
 # --> {0,1,2,3,4,5} these are the array representation 
 import random
 
